@@ -522,7 +522,26 @@ static struct discovery *discover_refs(const char *service, int for_push)
 
 	if (options.verbosity && !starts_with(refs_url.buf, url.buf)) {
 		char *u = transport_anonymize_url(url.buf);
-		warning(_("redirecting to %s"), u);
+		int warn = 1;
+
+		// don't care if the URL is different only because it's
+		//   being redirected to a URL that ends with ".git/"
+		//   So check if that's the case and don't warn if so
+		if (ends_with(url.buf, ".git/")) {
+			struct strbuf tmp = STRBUF_INIT;
+			const int suffix_len = strlen(".git/");
+
+			// remove the trailing ".git/" then compare again
+			strbuf_addbuf(&tmp, &url);
+			strbuf_remove(&tmp, tmp.len - suffix_len, suffix_len);
+			strbuf_addch(&tmp, '/');
+
+			warn = !starts_with(refs_url.buf, tmp.buf);
+
+			strbuf_release(&tmp);
+		}
+
+		if (warn) warning(_("redirecting to %s"), u);
 		free(u);
 	}
 
