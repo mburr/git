@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# mark Builds done in a "burr" branch appropriately
+BURR_BUILD=burr
+
 GVF=GIT-VERSION-FILE
 DEF_VER=v2.42.GIT
 
@@ -16,6 +19,7 @@ elif test -d ${GIT_DIR:-.git} -o -f .git &&
 	case "$VN" in
 	*$LF*) (exit 1) ;;
 	v[0-9]*)
+	    VN="${VN}-$BURR_BUILD"
 		git update-index -q --refresh
 		test -z "$(git diff-index --name-only HEAD --)" ||
 		VN="$VN-dirty" ;;
