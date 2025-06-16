@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# exit on any error or using unset vars
+set -o errexit
+set -o nounset
+
+script_name=$(basename "${0}")
+script_dir=$(dirname  "${0}")
+
+function get_gitdir()
+{
+    local git_dir="${GIT_DIR:-""}"
+    
+    # if the GIT_DIR envvar is empty, use rev-parse to find it
+    [ -z "$git_dir" ] && git_dir="$(git rev-parse --show-toplevel)/.git"
+    
+    # .git could be a "separate-git-dir" - check if it's a file instead of a directory
+    if [ -f "$git_dir" ] ; then 
+        git_dir="$(cat "$git_dir")"
+        
+        # if separate-git-dir is in use, the .git file is a textfile
+        #   of the form "gitdir: <path/to/git/dir>",
+        #   so remove the "gitdir: " prefix
+        git_dir="${git_dir#"gitdir: "}"
+    fi
+    
+    echo "$git_dir"
+}
+
+
+function is_git_repo_bare()
+{
+    # 'git rev-parse --is-bare-repository' outputs true or false 
+    #      (but sets "$?" to "0" regardless)
+    [ "$(git rev-parse --is-bare-repository)" = "true" ]
+}
+
+
+
+function main()
+{
+    git_dir=$(get_gitdir)
+
+    src_dir="$script_dir"
+    dst_dir="$git_dir/hooks/"
+
+    # pwd
+    # printf "%s\n" "$dir_name/$script_name"
+    # printf "GIT BASE: %s\n" "$git_base"
+
+    # get a list of:
+    #  - executable files
+    #  - in the directory where this script resides
+    #  - that do not have an extension or are hidden
+    #  - that are not this script
+    
+    hook_files=$(find "$src_dir"  -maxdepth 1  -name '*' -type f -executable -print0 | xargs -0 basename --multiple  | grep -vF . | grep -vF "$script_name")
+    
+    for file in $hook_files ; do
+        [ -f "$dst_dir/$file" ]  && (
+            cp "$dst_dir/$file" "$dst_dir/$file.$(date "+%Y-%m-%d").bak"
+        )
+        cp "$src_dir/$file" "$dst_dir/$file"
+    done
+}
+
+main "$@"
