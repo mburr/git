@@ -34,7 +34,7 @@ function git_this_branch()
 {
     # print the current branch name - if there is none, then workspace is
     #    in a detached head stat, so return that.
-    symbolic-ref --short HEAD 2>/dev/null || printf "%s\n" "detached-head"
+    git symbolic-ref --short HEAD 2>/dev/null || printf "%s\n" "detached-head"
 }
 
 
@@ -50,13 +50,16 @@ function git_this_branch()
 
 
 branch="$(git_this_branch)"
-if [ "$branch" = "master" ] || [ "$branch" = "hooks" ]; then
-  2>/dev/null echo "You can't commit directly to $branch branch"
-  exit 1
+if [ "$branch" = "master" ] || [ "$branch" = "main" ]; then
+    printf "pre-commit hook: %s\n" "Commits directly to $branch branch are not permitted."
+    exit 1
 fi
 
 if is_debug ; then
-    printf "%s\n" "pre-commit hook: disallowing commit due to GIT_HOOK_TEST=1"
+    printf "pre-commit hook: %s\n" "committing to branch: $branch"
+    printf "pre-commit hook: %s\n" "preventing commit due to GIT_HOOK_TEST=1"
     exit 1      # in test mode, don't allow any commits
 fi
 
+# OK to commit
+exit 0
