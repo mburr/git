@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# the pre-commit script is called with no arguments and the following
+# git-specific environment variables: 
+#
+#   GIT_AUTHOR_DATE=@1750026083 -0700
+#   GIT_AUTHOR_EMAIL=michael.burr@nth-element.com
+#   GIT_AUTHOR_NAME=Michael Burr
+#   GIT_EXEC_PATH=/home/mburr/libexec/git-core
+#   GIT_INDEX_FILE=/home/mburr/devtrees/git/.git/next-index-1122355.lock
+#   GIT_PREFIX=hooks/
+#
+# Note the env var list was captured froma very simple test, so it is
+# likely to be incomplete and/or contain variables that are not always set
+#
+
+
+function is_debug()
+{
+    # return success if hook script debugging is on
+    [ "$GIT_DEBUG_HOOKS" = "1" ]
+}
+
+
+if is_debug ; then
+    echo test precommit hook
+    echo ""
+    echo "args: " "$@"
+    echo
+    env | sort | grep --color=auto -E --color=auto --color -i "git|^" 
+fi
+
+function git_this_branch()
+{
+    # print the current branch name - if there is none, then workspace is
+    #    in a detached head stat, so return that.
+    symbolic-ref --short HEAD 2>/dev/null || printf "%s\n" "detached-head"
+}
+
+
+
+
+# This repository is intended to track the official repository.
+# DISALLOW COMMITTING TO "master" OR "main" BRANCH
+#
+# If you want to make changes to the repository create a 'private' branch.
+#
+# The only way updates or changes should be made to master/main are
+# via pulling from the upstream repository
+
+
+branch="$(git_this_branch)"
+if [ "$branch" = "master" ] || [ "$branch" = "hooks" ]; then
+  2>/dev/null echo "You can't commit directly to $branch branch"
+  exit 1
+fi
+
+if is_debug ; then
+    printf "%s\n" "pre-commit hook: disallowing commit due to GIT_HOOK_TEST=1"
+    exit 1      # in test mode, don't allow any commits
+fi
+
